@@ -11,7 +11,5 @@ services:
         value: "False"
       - key: DJANGO_SECRET_KEY
         generateValue: true
-      - key: GEMINI_API_KEY
-        value: "AIzaSyDH_5uQzegeCC8w4gU_e47RgrBP4cjcbh8"
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
