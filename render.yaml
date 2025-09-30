@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: email-summarizer-ai
+    env: python
+    plan: free
+    branch: main
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "gunicorn email_summarizer.wsgi:application"
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        value: "AIzaSyDH_5uQzegeCC8w4gU_e47RgrBP4cjcbh8"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
