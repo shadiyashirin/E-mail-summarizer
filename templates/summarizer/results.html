@@ -1,0 +1,87 @@
+{% extends 'summarizer/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="main-card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-1"><i class="bi bi-stars"></i> Email Summaries</h3>
+                        <p class="mb-0 opacity-75">Processed on: {{ email_summary.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                    <a href="{% url 'upload' %}" class="btn btn-outline-light">
+                        <i class="bi bi-plus-circle"></i> New Summary
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <!-- Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stats-card">
+                            <div class="stats-number">{{ email_results|length }}</div>
+                            <div>Emails Processed</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card">
+                            <div class="stats-number text-success">
+                                <i class="bi bi-check-lg"></i>
+                            </div>
+                            <div>Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card">
+                            <div class="stats-number">
+                                <i class="bi bi-robot"></i>
+                            </div>
+                            <div>AI Powered</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Summaries -->
+                {% for result in email_results %}
+                <div class="email-card">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1 text-primary"><i class="bi bi-person"></i> {{ result.sender }}</h6>
+                                <h5 class="mb-0 text-white"><i class="bi bi-envelope"></i> {{ result.subject }}</h5>
+                            </div>
+                            <span class="badge bg-success"><i class="bi bi-stars"></i> Processed</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-muted mb-3"><i class="bi bi-list-ul"></i> Summary</h6>
+                        
+                        {% if result.summary %}
+                            {% for point in result.summary %}
+                            <div class="summary-point">
+                                <i class="bi bi-arrow-right-short text-primary"></i> {{ point }}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> No summary available for this email.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">No Summaries Found</h4>
+                    <p class="text-muted">There might have been an error processing the emails.</p>
+                    <a href="{% url 'upload' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat"></i> Try Again
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

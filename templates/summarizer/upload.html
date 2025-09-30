@@ -1,0 +1,272 @@
+{% extends 'summarizer/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="main-card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-stars"></i> Email Summarization</h3>
+                <p class="mb-0 opacity-75">Choose your preferred method to summarize emails</p>
+            </div>
+            <div class="card-body p-4">
+                <!-- Error Messages -->
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Error:</strong> {{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+
+                <div class="row g-4">
+                    <!-- File Upload Section -->
+                    <div class="col-lg-6">
+                        <div class="upload-area" id="uploadArea">
+                            <div id="uploadContent">
+                                <i class="bi bi-cloud-arrow-up display-4 text-primary mb-3" id="uploadIcon"></i>
+                                <h4 id="uploadTitle" class="text-white">Upload Email File</h4>
+                                <p class="mb-3" id="uploadDescription">Upload a .txt file with multiple emails separated by "---"</p>
+                                
+                                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                                    {% csrf_token %}
+                                    <input type="file" class="d-none" id="email_file" name="email_file" accept=".txt" required>
+                                    <button type="button" class="btn btn-outline-primary mb-3" id="chooseFileBtn">
+                                        <i class="bi bi-folder2-open"></i> Choose File
+                                    </button>
+                                    <div class="form-text" id="fileInfo">No file selected</div>
+                                    
+                                    <button type="submit" class="btn btn-primary w-100 mt-3" id="processBtn">
+                                        <span id="btnText">Process Emails</span>
+                                        <div id="spinner" class="spinner-border spinner-border-sm d-none ms-2" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Single Email Section -->
+                    <div class="col-lg-6">
+                        <div class="p-4 border rounded-3 h-100" style="background: rgba(255, 255, 255, 0.05); border-color: var(--dark-border) !important;">
+                            <i class="bi bi-chat-left-text display-4 text-primary mb-3"></i>
+                            <h4 class="text-white">Single Email</h4>
+                            <p class="mb-3">Paste individual email content for instant summarization</p>
+                            
+                            <form id="singleEmailForm">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <textarea class="form-control" id="email_text" rows="8" 
+                                            placeholder="Paste your email content here...&#10;&#10;Example:&#10;From: sender@example.com&#10;Subject: Meeting Request&#10;&#10;Hi Team,&#10;Let's schedule a meeting..."></textarea>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary w-100" onclick="summarizeSingleEmail()">
+                                    <i class="bi bi-robot"></i> Summarize Email
+                                </button>
+                            </form>
+
+                            <div id="singleResult" class="mt-3" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Format Guide -->
+                <div class="mt-4 p-3 border rounded-3" style="background: rgba(255, 255, 255, 0.05); border-color: var(--dark-border) !important;">
+                    <h5 class="text-white"><i class="bi bi-info-circle"></i> File Format Guide</h5>
+                    <p class="mb-2">For batch processing, your .txt file should have this format:</p>
+                    <pre class="p-3 rounded small" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--dark-border); color: var(--accent-color);">From: sender1@example.com
+Subject: First Email Subject
+
+Email content goes here...
+Multiple lines of email content.
+
+---
+From: sender2@example.com  
+Subject: Second Email Subject
+
+Another email content...
+Separated by three dashes.
+
+---</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File upload area interactions
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('email_file');
+const fileInfo = document.getElementById('fileInfo');
+const uploadIcon = document.getElementById('uploadIcon');
+const uploadTitle = document.getElementById('uploadTitle');
+const uploadDescription = document.getElementById('uploadDescription');
+const chooseFileBtn = document.getElementById('chooseFileBtn');
+
+// Click to select file
+chooseFileBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
+uploadArea.addEventListener('click', (e) => {
+    if (e.target === uploadArea || e.target === uploadIcon || e.target === uploadTitle || e.target === uploadDescription) {
+        fileInput.click();
+    }
+});
+
+// File selection handler
+fileInput.addEventListener('change', function(e) {
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        const fileSize = (file.size / 1024).toFixed(1);
+        
+        // Update UI without breaking the form
+        uploadIcon.className = 'bi bi-file-check display-4 text-success mb-3';
+        uploadTitle.textContent = 'File Selected';
+        uploadDescription.innerHTML = `<strong class="text-success">${file.name}</strong><br>${fileSize} KB - Ready to process`;
+        chooseFileBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Change File';
+        fileInfo.innerHTML = `<i class="bi bi-check-circle text-success"></i> <strong>${file.name}</strong> (${fileSize} KB)`;
+        fileInfo.className = 'form-text text-success';
+    }
+});
+
+// Drag and drop functionality
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+});
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    fileInput.files = files;
+    fileInput.dispatchEvent(new Event('change'));
+}
+
+// Form submission loading state
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    console.log("📨 Form submitted");
+    
+    // Basic validation
+    if (!fileInput.files.length) {
+        e.preventDefault();
+        showAlert('Please select a file first', 'warning');
+        return;
+    }
+    
+    const btn = document.getElementById('processBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    
+    btn.disabled = true;
+    btnText.textContent = 'Processing...';
+    spinner.classList.remove('d-none');
+});
+
+// Single email summarization
+function summarizeSingleEmail() {
+    const emailText = document.getElementById('email_text').value;
+    const resultDiv = document.getElementById('singleResult');
+    
+    if (!emailText.trim()) {
+        showAlert('Please enter email text', 'warning');
+        return;
+    }
+
+    resultDiv.innerHTML = `
+        <div class="alert alert-info d-flex align-items-center">
+            <i class="bi bi-robot me-2"></i>
+            <div>AI is analyzing your email content...</div>
+        </div>
+    `;
+    resultDiv.style.display = 'block';
+
+    const formData = new FormData();
+    formData.append('email_text', emailText);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('/api/summarize/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        let html = '<div class="card email-card">';
+        html += '<div class="card-header bg-transparent border-bottom-0">';
+        html += '<div class="d-flex justify-content-between align-items-center">';
+        html += '<div><i class="bi bi-person text-primary"></i> <strong class="text-white">From:</strong> ' + (data.sender || 'Unknown') + '</div>';
+        html += '<span class="badge bg-primary"><i class="bi bi-stars"></i> Summarized</span>';
+        html += '</div></div>';
+        html += '<div class="card-body">';
+        html += '<h5 class="card-title text-white"><i class="bi bi-envelope text-primary"></i> ' + (data.subject || 'No Subject') + '</h5>';
+        
+        if (data.summary && Array.isArray(data.summary)) {
+            html += '<div class="mt-3">';
+            data.summary.forEach(point => {
+                html += '<div class="summary-point"><i class="bi bi-arrow-right-short text-primary"></i> ' + point + '</div>';
+            });
+            html += '</div>';
+        } else if (data.error) {
+            html += '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ' + data.error + '</div>';
+        }
+        
+        html += '</div></div>';
+        resultDiv.innerHTML = html;
+    })
+    .catch(error => {
+        resultDiv.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Error: ' + error + '</div>';
+    });
+}
+
+function showAlert(message, type) {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert-dismissible');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="bi bi-${type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.card-body').prepend(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Reset upload area when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Clear any existing file input
+    fileInput.value = '';
+    
+    // Reset UI to initial state
+    uploadIcon.className = 'bi bi-cloud-arrow-up display-4 text-primary mb-3';
+    uploadTitle.textContent = 'Upload Email File';
+    uploadDescription.textContent = 'Upload a .txt file with multiple emails separated by "---"';
+    chooseFileBtn.innerHTML = '<i class="bi bi-folder2-open"></i> Choose File';
+    fileInfo.textContent = 'No file selected';
+    fileInfo.className = 'form-text';
+});
+</script>
+{% endblock %}
