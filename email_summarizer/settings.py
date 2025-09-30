@@ -17,13 +17,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 
-SECRET_KEY = 'django-insecure-=3(3!@e&ph=c7li)4a4_iy0g)0q(y@0v1d&wi0bant@ssc9_ux'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'fallback-key-for-dev-only')
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') + [
+    'localhost',
+    '127.0.0.1',
+    '.onrender.com',  # Add this for Render
+]
 
 
 # Application definition
