@@ -191,6 +191,7 @@ Return ONLY valid JSON.
     
     try:
         emails = read_emails(file_path)
+        emails=emails[:5]
         results = []
         
         for i, email in enumerate(emails):
